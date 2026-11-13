@@ -1,0 +1,26 @@
+# Nunca subir secretos
+.env
+*.env
+secrets/
+*.key
+*.pem
+*.crt
+credentials.json
+
+# Datos de servicios
+data/
+config/*.local.yaml
+**/n8n_data/
+**/actual_data/
+**/ollama/
+**/webui/
+
+# Tailscale y ZeroTier
+*.tailscale
+tailscaled.state
+zerotier-one/
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.swp
