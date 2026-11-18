@@ -16,6 +16,7 @@ Este repositorio documenta la arquitectura, las decisiones de diseño y los prob
 | Automatización | n8n |
 | Finanzas | Actual Budget |
 | Red | Nginx Proxy Manager, Tailscale, ZeroTier |
+| Monitoreo | Uptime Kuma con alertas por ntfy |
 | Dashboard | Homepage |
 
 ## Hardware
@@ -49,4 +50,4 @@ Este repositorio documenta la arquitectura, las decisiones de diseño y los prob
 
 ## Estado
 
-En construcción. Pendiente: Immich, Vaultwarden, Pocket ID, AdGuard Home, monitoreo con Uptime Kuma, y un tercer nodo en Raspberry Pi para los servicios que deben sobrevivir cualquier caída.
+En construcción. Pendiente: Immich, Vaultwarden, Pocket ID, AdGuard Home, y un tercer nodo en Raspberry Pi. La Pi va a alojar los servicios que deben sobrevivir cualquier caída, incluido el monitoreo, que hoy corre en el Beelink.

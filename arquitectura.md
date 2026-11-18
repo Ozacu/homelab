@@ -42,6 +42,7 @@ El criterio es simple: lo que necesita GPU o RAM va a la laptop, lo que debe est
 | 203 | Homepage | 192.168.8.61 |
 | 204 | n8n | 192.168.8.62 |
 | 205 | Actual Budget | 192.168.8.63 |
+| 206 | ntfy + Uptime Kuma | 192.168.8.64 |
 | 401 | AMP + ZeroTier | 192.168.8.60 |
 
 ## Convención de IDs
@@ -82,6 +83,16 @@ update-initramfs -u
 **Certificados por DNS-01** con Cloudflare. La validación ocurre creando un registro TXT temporal, así que nunca hace falta exponer el puerto 80. Los registros DNS apuntan a la IP de Tailscale, que no lleva a ningún lado desde internet.
 
 **ZeroTier** aparte, solo dentro del contenedor de AMP, para que los amigos lleguen a los servidores de juego sin ver el resto de la red.
+
+## Monitoreo y alertas
+
+Uptime Kuma revisa cada servicio y manda los avisos por ntfy al teléfono. Los dos corren en el CT 206.
+
+El teléfono necesita Tailscale activo para llegar a ntfy, porque el servidor no está expuesto a internet.
+
+Limitación conocida: el monitor vive en el Beelink, así que si ese nodo cae, no hay aviso. La Raspberry Pi va a resolverlo. Al migrar hay que desplegar el mismo compose en la Pi, copiar el volumen de ntfy para conservar el usuario y recrear los monitores. Un backup de LXC hecho en x86 no se restaura en ARM.
+
+El detalle de la configuración está en [servicios](servicios.md).
 
 ## Energía
 

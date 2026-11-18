@@ -225,3 +225,69 @@ reg add HKLM\SYSTEM\CurrentControlSet\Control\Lsa /v EnableLinkedConnections /t 
 **Solución:** probar en incógnito para confirmar, luego limpiar los datos del sitio.
 
 Mejor todavía: no usar Base URL. Rompe los clientes de TV y móvil. Darle un puerto propio en el reverse proxy en vez de un subdirectorio.
+
+---
+
+## Uptime Kuma marca caído un dominio que sí funciona
+
+**Síntoma:** el monitor HTTP de un dominio `*.lab.ozacu.com` queda en 0% con respuesta N/A.
+
+**Causa:** el dominio resuelve a una IP de Tailscale. El contenedor de Kuma no tiene Tailscale, así que no sabe llegar. No es un fallo del servicio.
+
+**Diagnóstico:**
+
+```bash
+getent hosts <dominio>
+curl -sI https://<dominio> --max-time 5
+```
+
+Si devuelve una IP 100.x y el curl se cuelga, es esto.
+
+**Solución:** en el compose de Kuma, `extra_hosts` apuntando el dominio a la IP local del proxy.
+
+```yaml
+    extra_hosts:
+      - "home.lab.ozacu.com:192.168.8.53"
+```
+
+La clave se escribe `extra_hosts`, con s. Sin ella Compose responde con un error de schema poco claro.
+
+---
+
+## La app de ntfy no acepta usuario y contraseña
+
+**Síntoma:** la página web de ntfy carga en el navegador, pero la app del teléfono rechaza las credenciales.
+
+**Causa:** que la página cargue solo prueba que el proxy funciona. No valida el usuario. Con `deny-all`, una app sin credenciales válidas entra como anónima y se rechaza.
+
+**Revisar:**
+
+1. Mayúsculas. El teclado del teléfono pone la primera letra en mayúscula y ntfy distingue entre `Oscar` y `oscar`.
+2. Que el usuario y la contraseña se hayan escrito al agregar el servidor, no solo la URL.
+3. Que las credenciales sirvan desde el propio servidor:
+
+```bash
+curl -u <usuario>:<clave> -d "prueba" http://localhost:8080/<tema>
+```
+
+4. Que Tailscale siga activo en el teléfono. Android lo suspende a veces para ahorrar batería.
+
+---
+
+## Open WebUI descarga cientos de MB sin usarse
+
+**Síntoma:** el contenedor de Open WebUI muestra cerca de 900 MB de descarga en reposo, y su RAM ronda 900 MB.
+
+**Causa:** por defecto baja modelos de embeddings para su función de documentos, aunque nadie la use.
+
+**Solución:** en el compose, `RAG_EMBEDDING_ENGINE=ollama` y `ENABLE_OPENAI_API=false`. Se verifica con `docker stats`, columna NET I/O.
+
+---
+
+## El README de GitHub se ve como un solo párrafo
+
+**Síntoma:** títulos, tablas y listas aparecen pegados en un bloque de texto.
+
+**Causa:** el texto se copió desde una vista renderizada y se pegó en el editor web. Los saltos de línea se convierten en espacios.
+
+**Solución:** subir el archivo `.md` tal cual, o trabajar con `git clone`, copiar los archivos y hacer `git push`. Nunca copiar y pegar Markdown ya renderizado.
