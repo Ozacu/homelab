@@ -16,7 +16,7 @@ Este repositorio documenta la arquitectura, las decisiones de diseño y los prob
 | Automatización | n8n |
 | Finanzas | Actual Budget |
 | Red | Nginx Proxy Manager, Tailscale, ZeroTier |
-| Monitoreo | Uptime Kuma con alertas por ntfy |
+| Monitoreo | Uptime Kuma con alertas por ntfy, en una Raspberry Pi independiente |
 | Dashboard | Homepage |
 
 ## Hardware
@@ -27,6 +27,7 @@ Este repositorio documenta la arquitectura, las decisiones de diseño y los prob
 | Beelink SER5 | Ryzen 5 5500U, 32 GB DDR4, NVMe 500 GB | Nodo de servicios y juegos |
 | QNAP TS-231P | ARM 32 bits, 1 GB RAM, 2x3 TB en RAID 1 | Almacenamiento en red |
 | WD My Passport 1 TB | USB 3.0 | Destino de backups |
+| Raspberry Pi 5 8 GB | NVMe 500 GB (placa N04), carcasa metálica con ventilador activo, fuente de 27 W | Nodo centinela. Alertas y monitoreo, fuera de los otros dos nodos |
 | GL-iNet GL-MT3000 | Modo repetidor WiFi | Router de la subred |
 
 ## Decisiones de diseño
@@ -39,15 +40,17 @@ Este repositorio documenta la arquitectura, las decisiones de diseño y los prob
 
 **Nada expuesto a internet.** Todo el acceso remoto pasa por Tailscale. Los certificados se emiten por validación DNS, así que nunca hace falta abrir un puerto.
 
+**Un nodo pequeño que vigila a los grandes.** El monitoreo y las alertas viven en una Raspberry Pi. Un monitor que corre en la máquina que vigila no avisa cuando esa máquina cae. La Pi consume poco y no depende de Proxmox, así que sigue en pie si los otros dos fallan.
+
 **LXC sobre VM siempre que sea posible.** Consumen menos y arrancan más rápido. Las VMs quedan para lo que necesite kernel propio.
 
 ## Documentación
 
-- [Arquitectura](docs/arquitectura.md)
-- [Servicios](docs/servicios.md)
-- [Backups](docs/backups.md)
-- [Problemas resueltos](docs/troubleshooting.md)
+- [Arquitectura](arquitectura.md)
+- [Servicios](servicios.md)
+- [Backups](backups.md)
+- [Problemas resueltos](troubleshooting.md)
 
 ## Estado
 
-En construcción. Pendiente: Immich, Vaultwarden, Pocket ID, AdGuard Home, y un tercer nodo en Raspberry Pi. La Pi va a alojar los servicios que deben sobrevivir cualquier caída, incluido el monitoreo, que hoy corre en el Beelink.
+En construcción. La Raspberry Pi ya corre ntfy y Uptime Kuma. Pendiente: AdGuard Home y Vaultwarden en la Pi, copia fuera de casa, Immich y Pocket ID.

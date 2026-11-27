@@ -14,6 +14,7 @@ GL-iNet GL-MT3000 ── subred 192.168.8.0/24
    ├── Switch 8 puertos
    │     ├── Laptop (Proxmox)      192.168.8.188
    │     ├── Beelink (Proxmox)     192.168.8.50
+   │     ├── Raspberry Pi          192.168.8.10
    │     └── NAS QNAP              192.168.8.125
    │
    └── Tailscale ──► acceso remoto desde cualquier lugar
@@ -42,8 +43,19 @@ El criterio es simple: lo que necesita GPU o RAM va a la laptop, lo que debe est
 | 203 | Homepage | 192.168.8.61 |
 | 204 | n8n | 192.168.8.62 |
 | 205 | Actual Budget | 192.168.8.63 |
-| 206 | ntfy + Uptime Kuma | 192.168.8.64 |
+| 206 | ntfy + Uptime Kuma (retirado, ver nodo 3) | 192.168.8.64 |
 | 401 | AMP + ZeroTier | 192.168.8.60 |
+
+### Nodo 3: Raspberry Pi
+
+No usa Proxmox. Corre Raspberry Pi OS Lite de 64 bits con Docker directamente.
+
+| Servicio | IP y puerto |
+|---|---|
+| ntfy | 192.168.8.10:8080 |
+| Uptime Kuma | 192.168.8.10:3001 |
+
+En Nginx Proxy Manager los dominios de ntfy y Kuma apuntan ahora a esos destinos. El CT 206 queda detenido una o dos semanas como respaldo y después se borra.
 
 ## Convención de IDs
 
@@ -65,6 +77,7 @@ Definir esto antes de crear el primer contenedor evita tener que renombrar despu
 | Laptop, NVMe 1 TB (ZFS, pool `tank`) | Contenedores y VMs |
 | Beelink, NVMe 500 GB | Sistema y contenedores |
 | Beelink, HDD 1 TB USB | Datastore de PBS |
+| Raspberry Pi, NVMe 500 GB | Sistema y volúmenes de Docker |
 | NAS, RAID 1 de 3 TB | Media, fotos y copia de backups |
 
 El pool ZFS tiene la caché ARC limitada a 4 GB para dejar RAM a los contenedores:
@@ -86,11 +99,13 @@ update-initramfs -u
 
 ## Monitoreo y alertas
 
-Uptime Kuma revisa cada servicio y manda los avisos por ntfy al teléfono. Los dos corren en el CT 206.
+Uptime Kuma revisa cada servicio y manda los avisos por ntfy al teléfono. Los dos corren en la Raspberry Pi, no en los nodos Proxmox. Así una caída del Beelink o de la laptop sí genera aviso.
 
 El teléfono necesita Tailscale activo para llegar a ntfy, porque el servidor no está expuesto a internet.
 
-Limitación conocida: el monitor vive en el Beelink, así que si ese nodo cae, no hay aviso. La Raspberry Pi va a resolverlo. Al migrar hay que desplegar el mismo compose en la Pi, copiar el volumen de ntfy para conservar el usuario y recrear los monitores. Un backup de LXC hecho en x86 no se restaura en ARM.
+**Migración desde el CT 206.** El mismo compose se desplegó en la Pi y los monitores se recrearon a mano. Un backup de LXC hecho en x86 no se restaura en ARM, pero las imágenes de ntfy y Kuma sí tienen versión ARM64, así que el compose funciona sin cambios. Los destinos del proxy se cambiaron a la IP de la Pi.
+
+**Pregunta abierta: quién vigila a la Pi.** Si la Pi cae, Kuma cae con ella. La idea es un chequeo externo tipo "latido": la Pi avisa a un servicio gratuito cada pocos minutos y ese servicio manda un correo si dejan de llegar. Pendiente.
 
 El detalle de la configuración está en [servicios](servicios.md).
 

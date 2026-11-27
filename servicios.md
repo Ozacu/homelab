@@ -227,7 +227,7 @@ Sin `HOMEPAGE_ALLOWED_HOSTS` bloquea el acceso por dominio.
 
 ## ntfy y Uptime Kuma
 
-Alertas al teléfono y monitoreo de todos los servicios. Corren juntos en un solo contenedor (CT 206) en el Beelink. Cuando llegue la Raspberry Pi, se mudan allá. Un monitor no debería vivir en la misma máquina que vigila.
+Alertas al teléfono y monitoreo de todos los servicios. Corren juntos con Docker en la Raspberry Pi, en `~/alertas/docker-compose.yml`. Antes vivían en un contenedor del Beelink (CT 206). Un monitor no debería vivir en la misma máquina que vigila.
 
 ```yaml
 services:
@@ -270,6 +270,24 @@ Crear el usuario administrador de ntfy:
 docker compose exec ntfy ntfy user add --role=admin <usuario>
 ```
 
+### Tokens para otros sistemas
+
+Un programa que publica avisos no necesita la contraseña del administrador. Se le da un usuario propio que solo puede escribir en un tema, y un token:
+
+```bash
+docker compose exec ntfy ntfy user add agentes
+docker compose exec ntfy ntfy access agentes <tema> write-only
+docker compose exec ntfy ntfy token add --label="sistema-agentes" agentes
+```
+
+El programa envía el token como cabecera:
+
+```bash
+curl -H "Authorization: Bearer <token>" -d "mensaje" https://ntfy.lab.ozacu.com/<tema>
+```
+
+Con `write-only`, si el token se filtra solo permite mandar avisos, no leer los demás. El token va en un `.env` del programa que lo usa y nunca en el repositorio. Para revocarlo: `ntfy token remove agentes <token>`.
+
 ### Decisiones
 
 **`deny-all` en ntfy.** Nadie publica ni lee sin usuario, aunque llegue a la URL.
@@ -303,16 +321,63 @@ Intervalo de 60 segundos y 3 reintentos antes de alertar, para que un parpadeo n
 
 ### Qué no cubre
 
-Si se va la luz, el router también cae y ningún aviso sale de casa. Eso solo lo resuelve un UPS. Y mientras el monitor viva en el Beelink, si el Beelink cae nadie avisa.
+Si se va la luz, el router también cae y ningún aviso sale de casa. Eso solo lo resuelve un UPS. Y si cae la propia Pi, tampoco hay aviso hasta que exista un chequeo externo (ver arquitectura).
 
 ### Probar la alerta
 
 Una alerta que nunca se probó no sirve cuando hace falta. Se detiene un contenedor a propósito, se espera el tiempo de los reintentos y se confirma que llega el aviso de caída y el de recuperación.
 
 ```bash
-pct stop <ID>
+pct stop <ID>      # en el nodo Proxmox del servicio
 pct start <ID>
 ```
+
+---
+
+## Raspberry Pi
+
+Nodo centinela con Raspberry Pi OS Lite de 64 bits, arrancando desde NVMe. La tarjeta microSD solo sirve para el primer arranque.
+
+**1. Primera instalación.** Con Raspberry Pi Imager en una microSD: Raspberry Pi OS Lite (64-bit), nombre de equipo, usuario, SSH activado y clave o contraseña. Se conecta por cable y se entra por SSH.
+
+**2. Clonar al NVMe.** El clon copia el sistema ya configurado en vez de reinstalar:
+
+```bash
+sudo apt update && sudo apt full-upgrade -y
+sudo apt install -y git
+git clone https://github.com/geerlingguy/rpi-clone.git
+cd rpi-clone && sudo cp rpi-clone rpi-clone-setup /usr/local/sbin
+lsblk                      # confirmar que el NVMe aparece como nvme0n1
+sudo rpi-clone nvme0n1
+```
+
+**3. Orden de arranque.** En `sudo raspi-config`, Advanced Options, Boot Order, elegir NVMe primero. Se apaga, se quita la microSD y se enciende.
+
+**4. IP fija** con NetworkManager:
+
+```bash
+sudo nmcli con mod "Wired connection 1" ipv4.addresses 192.168.8.10/24 \
+  ipv4.gateway 192.168.8.1 ipv4.dns "1.1.1.1 8.8.8.8" ipv4.method manual
+sudo nmcli con up "Wired connection 1"
+```
+
+**5. Docker.**
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+```
+
+Hay que cerrar sesión y volver a entrar para que el grupo tome efecto.
+
+**6. Tailscale**, con la expiración de llave desactivada para el equipo en el panel de administración. Si la llave caduca, la Pi deja de ser alcanzable justo cuando hace falta.
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+```
+
+**7. Servicios.** Se copia el compose de ntfy y Kuma a `~/alertas/` y `docker compose up -d`. Después se cambian los destinos en Nginx Proxy Manager a `192.168.8.10:8080` y `:3001`.
 
 ---
 

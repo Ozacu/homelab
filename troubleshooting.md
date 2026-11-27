@@ -291,3 +291,42 @@ curl -u <usuario>:<clave> -d "prueba" http://localhost:8080/<tema>
 **Causa:** el texto se copió desde una vista renderizada y se pegó en el editor web. Los saltos de línea se convierten en espacios.
 
 **Solución:** subir el archivo `.md` tal cual, o trabajar con `git clone`, copiar los archivos y hacer `git push`. Nunca copiar y pegar Markdown ya renderizado.
+
+---
+
+## Docker responde "permission denied" en la Raspberry Pi
+
+**Síntoma:** `permission denied while trying to connect to the Docker daemon socket`, justo después de instalar Docker.
+
+**Causa:** `usermod -aG docker` cambia los grupos del usuario, pero la sesión abierta sigue con los grupos anteriores.
+
+**Solución:** cerrar la sesión SSH y volver a entrar. Para probar sin salir, `newgrp docker`. Se verifica con `groups`.
+
+---
+
+## La Raspberry Pi no detecta el NVMe
+
+**Síntoma:** `lsblk` no muestra `nvme0n1`.
+
+**Causa:** casi siempre es la conexión física. El cable plano de PCIe tiene que entrar completo y en el sentido correcto, en la placa y en la Pi.
+
+**Solución:**
+
+1. Apagar, reasentar el cable en ambos extremos y volver a probar.
+2. Si sigue sin aparecer, forzar PCIe en `/boot/firmware/config.txt`:
+
+```
+dtparam=pciex1
+```
+
+3. Reiniciar y comprobar con `lsblk`.
+
+---
+
+## El clon al NVMe no arranca
+
+**Síntoma:** después de `rpi-clone` y quitar la microSD, la Pi no inicia.
+
+**Causa:** el orden de arranque seguía en microSD primero, o el clon se hizo antes de que el NVMe fuera estable.
+
+**Solución:** con la microSD puesta, `sudo raspi-config`, Advanced Options, Boot Order, NVMe primero. Confirmar que `lsblk` muestra `/` montado en `nvme0n1p2`. Solo entonces retirar la microSD.
